@@ -10,6 +10,9 @@
 namespace bb {
     typedef uint_fast64_t Bitboard;
 
+    Bitboard straightMoves(Bitboard, Bitboard);
+    Bitboard diagonalMoves(Bitboard, Bitboard);
+
     void printBitboard(Bitboard);
     void printBinary(Bitboard);
     void printHex(Bitboard);

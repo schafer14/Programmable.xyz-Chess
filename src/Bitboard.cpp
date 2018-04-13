@@ -3,11 +3,15 @@
 //
 
 #include "Bitboard.h"
+#include "DataUtilityBitboards.h"
 
 #include <iostream>
 #include <bitset>
 #include <iomanip>
 
+// Helper functions
+bb::Bitboard slideAttacks(bb::Bitboard, bb::Bitboard, bb::Bitboard);
+bb::Bitboard reverseSlideAttacks(bb::Bitboard, bb::Bitboard, bb::Bitboard);
 
 // Default board configurations
 const int BOARD_WIDTH = 8;
@@ -27,6 +31,59 @@ const int index64[64] = {
 
 // Letters are used to represent the columns in a chess board.
 char letters [] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' };
+
+/**
+ * straightMoves
+ *
+ * Returns a bitboard with legal ending squares for a sliding piece's straight moves
+ *
+ * @author Banner Schafer (2018)
+ * @attention Destination squares with friendly pieces are returned in the final bitboard.
+ * @param startingBb The current square of the piece to move
+ * @param occupationBb The bitboard representing all pieces on the chessboard
+ * @return destinationBb A bitboard representing all legal straight moves
+ *
+*/
+bb::Bitboard bb::straightMoves(Bitboard startingBb, Bitboard occupationBb) {
+    int squareIndex = bb::bitScanForward(startingBb);
+
+    return
+            // North Attacks
+            slideAttacks(startingBb, occupationBb, utility_bb::columns[squareIndex])
+            | // East Attacks
+            slideAttacks(startingBb, occupationBb, utility_bb::rows[squareIndex])
+            | // West Attacks
+            reverseSlideAttacks(startingBb, occupationBb, utility_bb::rows[squareIndex])
+            | // South Attacks
+            reverseSlideAttacks(startingBb, occupationBb, utility_bb::columns[squareIndex]);
+
+
+}
+/**
+ * diagonalMoves
+ *
+ * Returns a bitboard with legal ending squares for a sliding piece's diagonal moves
+ *
+ * @author Banner Schafer (2018)
+ * @attention Destination squares with friendly pieces are returned in the final bitboard.
+ * @param startingBb The current square of the piece to move
+ * @param occupationBb The bitboard representing all pieces on the chessboard
+ * @return destinationBb A bitboard representing all legal diagonal moves
+ *
+*/
+bb::Bitboard bb::diagonalMoves(Bitboard startingBb, Bitboard occupationBb) {
+    int squareIndex = bb::bitScanForward(startingBb);
+
+    return
+            // North East Attacks
+            slideAttacks(startingBb, occupationBb, utility_bb::diag[squareIndex])
+            | // East West Attacks
+            slideAttacks(startingBb, occupationBb, utility_bb::antiDiag[squareIndex])
+            | // South East
+            reverseSlideAttacks(startingBb, occupationBb, utility_bb::antiDiag[squareIndex])
+            | // South West
+            reverseSlideAttacks(startingBb, occupationBb, utility_bb::diag[squareIndex]);
+}
 
 /**
  * printBitboard
@@ -162,3 +219,31 @@ bb::Bitboard bb::reverse(Bitboard bb)
     return bb;
 }
 
+/**
+ * slidingAttacks
+ *
+ * Generates a bitboard of destination squares for sliding pieces
+ *
+ * @author Banner Schafer (2018)
+ * @attention This only works in the North East direction. For other attacks use reverseSlidingAttacks
+ * @params startingBb A bitboard containing the piece to generate moves for.
+ * @params occupationBb A bitboard with all of the pieces on the chess board
+ * @params mask A bitboard with all legal destinations if there are no other pieces on the board
+ * @return New bitboard with all possible destinations for the piece.
+ */
+bb::Bitboard slideAttacks(bb::Bitboard startingBb, bb::Bitboard occupationBb, bb::Bitboard mask) {
+    bb::Bitboard blockingPieces = occupationBb & mask;
+
+    bb::Bitboard diff = blockingPieces - 2 * startingBb;
+    bb::Bitboard changed = diff ^ occupationBb;
+
+    return changed & mask;
+}
+
+bb::Bitboard reverseSlideAttacks(bb::Bitboard startingBb, bb::Bitboard occupationBb, bb::Bitboard mask) {
+    bb::Bitboard reverseStart = bb::reverse(startingBb);
+    bb::Bitboard reverseOcc= bb::reverse(occupationBb);
+    bb::Bitboard reverseMask = bb::reverse(mask);
+
+    return bb::reverse(slideAttacks(reverseStart, reverseOcc, reverseMask));
+}
